@@ -86,9 +86,10 @@ async function search(req, res) {
     const rawForGemini = rawItems.map(({ _storeDoc, ...item }) => item);
     const classified = await classifyProducts(rawForGemini);
 
-    // Re-attach store docs
+    // Re-attach store docs + the store's scraped rating (Gemini strips it from its output)
     const enriched = classified.map((item, i) => ({
       ...item,
+      rating: rawItems[i]?.rating ?? null,
       _storeDoc: rawItems[i]?._storeDoc || null,
     }));
 
@@ -146,14 +147,16 @@ function formatProduct(item) {
   return {
     name_en: item.name_en || '',
     name_ur: item.name_ur || '',
+    brand: item.brand || '',
     price_pkr: item.price_pkr || 0,
     image_url: item.image_url || '',
     source_url: item.source_url || '',
     store_name: item._storeDoc?.name || item.store_name || '',
     category: item.category || 'A',
+    rating: item.rating ?? null,           // store's own scraped rating
     timeframe_tag: item.timeframe_tag || 'fresh',
     confidence: item.confidence ?? 1.0,
-    review_score: item.review_score ?? null,
+    review_score: item.review_score ?? null, // our aggregated score (Phase 4)
     review_source: item.review_source ?? null,
   };
 }

@@ -25,6 +25,7 @@ async function upsertProducts(classifiedItems, storeId) {
         existing.name_ur = item.name_ur || existing.name_ur;
         existing.brand = item.brand || existing.brand;
         existing.image_url = item.image_url || existing.image_url;
+        existing.rating = item.rating ?? existing.rating;
         existing.timeframe_tag = item.timeframe_tag || existing.timeframe_tag;
         existing.confidence = item.confidence ?? existing.confidence;
         existing.flagged = item.confidence < 0.8;
@@ -40,6 +41,7 @@ async function upsertProducts(classifiedItems, storeId) {
           price_pkr: item.price_pkr,
           source_url: item.source_url,
           image_url: item.image_url || '',
+          rating: item.rating ?? null,
           timeframe_tag: item.timeframe_tag || 'fresh',
           confidence: item.confidence ?? 1.0,
           flagged: item.confidence < 0.8,

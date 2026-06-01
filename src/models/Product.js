@@ -14,6 +14,7 @@ const productSchema = new mongoose.Schema({
   price_pkr: { type: Number, required: true },
   source_url: { type: String, required: true }, // product page on store
   image_url: { type: String, default: '' },     // product thumbnail
+  rating: { type: Number, default: null },       // store's own scraped rating (0–5), distinct from aggregated review_score
   timeframe_tag: { type: String, enum: ['fresh', 'recent', 'old'], default: 'fresh' },
   confidence: { type: Number, default: 1.0 },
   flagged: { type: Boolean, default: false }, // confidence < 0.80
