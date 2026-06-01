@@ -36,18 +36,22 @@ async function search(req, res) {
         success: true,
         cached: false,
         results: { A: [], B: [], C: [], D: [] },
-        meta: { city, language: nlp.language, stores_searched: 0, total: 0, durationMs: 0 },
+        meta: { city, language: nlp.language, stores_searched: 0, total: 0, durationMs: Date.now() - startMs },
       });
     }
 
     // ── 3b. Live health check → keep only stores that respond right now ───────
     const liveStores = await filterOnlineStores(stores);
+    // partial = at least one eligible store was offline (skipped by the health check),
+    // so the user is seeing fewer sources than exist for this city.
+    const partial = liveStores.length < stores.length;
+
     if (!liveStores.length) {
       return res.json({
         success: true,
         cached: false,
         results: { A: [], B: [], C: [], D: [] },
-        meta: { city, language: nlp.language, stores_searched: 0, total: 0, durationMs: 0 },
+        meta: { city, language: nlp.language, stores_searched: 0, total: 0, partial, durationMs: Date.now() - startMs },
       });
     }
 
@@ -59,9 +63,8 @@ async function search(req, res) {
       city
     );
 
-    // partial = some stores returned data, others failed → UI marks unavailable sources
-    const partial =
-      scrapeMeta.failedStores.length > 0 && scrapeMeta.successStores.length > 0;
+    // Stores actually attempted by a scraper (runStores skips stores with no scraper)
+    const storesSearched = scrapeMeta.successStores.length + scrapeMeta.failedStores.length;
 
     if (!rawItems.length) {
       return res.json({
@@ -71,7 +74,7 @@ async function search(req, res) {
         meta: {
           city,
           language: nlp.language,
-          stores_searched: liveStores.length,
+          stores_searched: storesSearched,
           total: 0,
           partial,
           ...scrapeMeta,
@@ -122,7 +125,7 @@ async function search(req, res) {
         city,
         language: nlp.language,
         timeframe: nlp.timeframe,
-        stores_searched: liveStores.length,
+        stores_searched: storesSearched,
         total: enriched.length,
         durationMs: totalMs,
         partial,

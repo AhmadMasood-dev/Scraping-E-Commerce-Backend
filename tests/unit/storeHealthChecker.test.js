@@ -30,7 +30,9 @@ describe('checkStoreOnline', () => {
   });
 
   it('returns false for a 500 response', async () => {
-    axios.head.mockResolvedValue({ status: 500 });
+    // validateStatus: (s) => s < 500 makes axios REJECT on 5xx in production,
+    // so this must be a rejection, not a resolved { status: 500 }.
+    axios.head.mockRejectedValue(new Error('Request failed with status code 500'));
     expect(await checkStoreOnline(makeStore('PriceOye'))).toBe(false);
   });
 
