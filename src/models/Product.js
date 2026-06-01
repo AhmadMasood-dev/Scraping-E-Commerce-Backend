@@ -8,6 +8,7 @@ const priceHistorySchema = new mongoose.Schema({
 const productSchema = new mongoose.Schema({
   name_en: { type: String, required: true },
   name_ur: { type: String, default: '' },
+  brand: { type: String, default: '' },
   store_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', required: true },
   category: { type: String, enum: ['A', 'B', 'C', 'D'], required: true },
   price_pkr: { type: Number, required: true },

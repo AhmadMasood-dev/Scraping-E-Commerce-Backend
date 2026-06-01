@@ -13,6 +13,7 @@ Given a list of raw product objects (scraped from various Pakistani online store
 - category: "A" (generic marketplace) | "B" (niche/comparison) | "C" (brand/niche store) — infer from store_name
 - name_en: clean English product name (remove store names, codes, special chars)
 - name_ur: Urdu translation or phonetic transliteration of the product name
+- brand: manufacturer/brand extracted from the product name (e.g. "Samsung", "Apple", "Honda", "Nestle") — empty string "" if no recognisable brand
 - price_pkr: integer price in Pakistani Rupees (extract number only, no commas/symbols)
 - timeframe_tag: "fresh" (product added/updated < 30 days) | "recent" (< 6 months) | "old" (> 6 months) — infer from scraped_at date if available, else "fresh"
 - review_score: null (no reviews in this batch — Review Engine handles this separately)
@@ -22,6 +23,7 @@ Given a list of raw product objects (scraped from various Pakistani online store
 - source_url: pass through from input unchanged
 
 Rules:
+- For brand: extract only a real manufacturer/brand name from the product title; if unclear, use ""
 - If price cannot be determined, set price_pkr to 0 and confidence to 0.5
 - For brand stores (Samsung, Honda, Pakfan), set category to "C"
 - For PriceOye / PakWheels, set category to "B"
@@ -56,6 +58,7 @@ async function classifyProducts(rawProducts) {
       category: 'A',
       name_en: p.name || p.title || 'Unknown Product',
       name_ur: '',
+      brand: p.brand || '',
       price_pkr: typeof p.price === 'number' ? p.price : 0,
       timeframe_tag: 'fresh',
       review_score: null,
