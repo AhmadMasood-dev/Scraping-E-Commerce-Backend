@@ -1,5 +1,6 @@
 const { processQuery } = require('../nlp/processor');
 const { getEligibleStores } = require('../services/locationResolver');
+const { filterOnlineStores } = require('../services/storeHealthChecker');
 const { runStores } = require('../services/storeTierRouter');
 const { classifyProducts } = require('../services/geminiClassifier');
 const { upsertProducts } = require('../services/scraper.service');
@@ -39,20 +40,42 @@ async function search(req, res) {
       });
     }
 
-    // ── 4. Scrape all eligible stores in parallel ─────────────────────────────
+    // ── 3b. Live health check → keep only stores that respond right now ───────
+    const liveStores = await filterOnlineStores(stores);
+    if (!liveStores.length) {
+      return res.json({
+        success: true,
+        cached: false,
+        results: { A: [], B: [], C: [], D: [] },
+        meta: { city, language: nlp.language, stores_searched: 0, total: 0, durationMs: 0 },
+      });
+    }
+
+    // ── 4. Scrape all live stores in parallel ─────────────────────────────────
     const { items: rawItems, meta: scrapeMeta } = await runStores(
-      stores,
+      liveStores,
       nlp.normalized,
       nlp.keywords,
       city
     );
+
+    // partial = some stores returned data, others failed → UI marks unavailable sources
+    const partial =
+      scrapeMeta.failedStores.length > 0 && scrapeMeta.successStores.length > 0;
 
     if (!rawItems.length) {
       return res.json({
         success: true,
         cached: false,
         results: { A: [], B: [], C: [], D: [] },
-        meta: { city, language: nlp.language, stores_searched: stores.length, total: 0, ...scrapeMeta },
+        meta: {
+          city,
+          language: nlp.language,
+          stores_searched: liveStores.length,
+          total: 0,
+          partial,
+          ...scrapeMeta,
+        },
       });
     }
 
@@ -99,9 +122,10 @@ async function search(req, res) {
         city,
         language: nlp.language,
         timeframe: nlp.timeframe,
-        stores_searched: stores.length,
+        stores_searched: liveStores.length,
         total: enriched.length,
         durationMs: totalMs,
+        partial,
         ...scrapeMeta,
       },
     };

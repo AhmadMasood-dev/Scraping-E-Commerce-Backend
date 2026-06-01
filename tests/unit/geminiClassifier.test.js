@@ -9,6 +9,7 @@ const MOCK_CLASSIFIED = [
     category: 'A',
     name_en: 'Samsung Galaxy S24',
     name_ur: 'سام سنگ گیلکسی',
+    brand: 'Samsung',
     price_pkr: 150000,
     timeframe_tag: 'fresh',
     review_score: null,
@@ -38,6 +39,7 @@ describe('GeminiClassifier', () => {
     expect(result[0].name_en).toBe('Samsung Galaxy S24');
     expect(result[0].price_pkr).toBe(150000);
     expect(result[0].category).toBe('A');
+    expect(result[0].brand).toBe('Samsung');
   });
 
   it('returns empty array for empty input', async () => {
@@ -62,7 +64,20 @@ describe('GeminiClassifier', () => {
   it('all results have required fields', async () => {
     const input = [{ name: 'Test Product', price: 5000, store_name: 'Daraz' }];
     const result = await classifyProducts(input);
-    const fields = ['category', 'name_en', 'name_ur', 'price_pkr', 'timeframe_tag', 'confidence'];
+    const fields = ['category', 'name_en', 'name_ur', 'brand', 'price_pkr', 'timeframe_tag', 'confidence'];
     fields.forEach((f) => expect(result[0]).toHaveProperty(f));
+  });
+
+  it('fallback includes brand field', async () => {
+    GoogleGenerativeAI.mockImplementation(() => ({
+      getGenerativeModel: () => ({
+        generateContent: async () => { throw new Error('API error'); },
+      }),
+    }));
+
+    const input = [{ name: 'iPhone 15', price: 200000, brand: 'Apple', store_name: 'Daraz' }];
+    const result = await classifyProducts(input);
+    expect(result[0]).toHaveProperty('brand');
+    expect(result[0].brand).toBe('Apple');
   });
 });

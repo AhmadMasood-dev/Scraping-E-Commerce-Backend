@@ -23,6 +23,7 @@ async function upsertProducts(classifiedItems, storeId) {
         existing.price_pkr = item.price_pkr;
         existing.name_en = item.name_en || existing.name_en;
         existing.name_ur = item.name_ur || existing.name_ur;
+        existing.brand = item.brand || existing.brand;
         existing.image_url = item.image_url || existing.image_url;
         existing.timeframe_tag = item.timeframe_tag || existing.timeframe_tag;
         existing.confidence = item.confidence ?? existing.confidence;
@@ -33,6 +34,7 @@ async function upsertProducts(classifiedItems, storeId) {
         await Product.create({
           name_en: item.name_en,
           name_ur: item.name_ur || '',
+          brand: item.brand || '',
           store_id: storeId,
           category: item.category || 'A',
           price_pkr: item.price_pkr,
