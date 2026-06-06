@@ -21,14 +21,12 @@ async function searchDaraz(query, maxResults = 20) {
     const items = data?.mods?.listItems || [];
     const results = items.slice(0, maxResults).map((item) => ({
       name: item.name || item.brandName || 'Unknown',
-      price: parsePrice(item.price),
-      image_url: item.image || '',
-      source_url: item.productUrl
-        ? (item.productUrl.startsWith('http') ? item.productUrl : `https://www.daraz.pk${item.productUrl}`)
-        : '',
+      price: parsePrice(item.price || item.priceShow),
+      image_url: normalizeUrl(item.image),
+      // Daraz field is `itemUrl` (often protocol-relative: //www.daraz.pk/...)
+      source_url: normalizeUrl(item.itemUrl || item.productUrl),
       store_name: 'Daraz',
       rating: parseFloat(item.ratingScore) || null,
-      sold_count: parseInt(item.itemSoldCntShow) || 0,
       scraped_at: new Date().toISOString(),
     }));
 
@@ -46,4 +44,12 @@ function parsePrice(raw) {
   return isNaN(n) ? 0 : Math.round(n);
 }
 
-module.exports = { searchDaraz };
+// Normalises Daraz URLs: protocol-relative (//host/...) → https://, relative (/...) → daraz.pk
+function normalizeUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('/')) return `https://www.daraz.pk${url}`;
+  return url;
+}
+
+module.exports = { searchDaraz, normalizeUrl };
