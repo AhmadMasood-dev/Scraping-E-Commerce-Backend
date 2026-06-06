@@ -35,7 +35,7 @@ describe('LocationResolver', () => {
   });
 
   describe('getEligibleStores', () => {
-    it('returns only online stores', async () => {
+    it('returns all city-matching candidate stores', async () => {
       City.findOne.mockResolvedValue(mockCity('islamabad'));
       Store.find.mockResolvedValue([
         mockStore('Daraz', ['*'], true),
@@ -43,17 +43,27 @@ describe('LocationResolver', () => {
       ]);
       const stores = await getEligibleStores('islamabad');
       expect(stores.length).toBe(2);
-      stores.forEach((s) => expect(s.has_online_store).toBe(true));
     });
 
-    it('skips offline stores', async () => {
+    it('does NOT filter by online status — that is the health checker\'s job', async () => {
+      // getEligibleStores returns candidates regardless of has_online_store.
+      // filterOnlineStores (tested separately) decides reachability at runtime.
       City.findOne.mockResolvedValue(mockCity('islamabad'));
       Store.find.mockResolvedValue([
         mockStore('Daraz', ['*'], true),
+        mockStore('Metro', ['islamabad'], false), // offline in DB, still returned as a candidate
       ]);
-      // Metro (offline) would not appear because find is filtered by has_online_store: true
       const stores = await getEligibleStores('islamabad');
-      expect(stores.every((s) => s.has_online_store)).toBe(true);
+      expect(stores.length).toBe(2);
+      expect(stores.map((s) => s.name)).toContain('Metro');
+    });
+
+    it('query passed to Store.find does NOT include has_online_store', async () => {
+      City.findOne.mockResolvedValue(mockCity('islamabad'));
+      Store.find.mockResolvedValue([]);
+      await getEligibleStores('islamabad');
+      const queryArg = Store.find.mock.calls[0][0];
+      expect(queryArg).not.toHaveProperty('has_online_store');
     });
   });
 

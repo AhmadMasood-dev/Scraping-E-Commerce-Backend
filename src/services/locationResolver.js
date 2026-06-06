@@ -19,25 +19,25 @@ async function resolveCity(cityInput) {
   return city;
 }
 
-// Return all stores that:
-// 1. have online presence
-// 2. serve the given city (either '*' nationwide or city listed)
+// Return all stores that serve the given city (either '*' nationwide or city listed).
+// NOTE: We do NOT filter by has_online_store here — that is decided at runtime by
+// storeHealthChecker.filterOnlineStores(). This keeps the curated list ("which stores
+// exist & serve this city") separate from the live check ("which are reachable now").
 async function getEligibleStores(cityInput) {
   const city = await resolveCity(cityInput);
   if (!city) {
     logger.warn('[LocationResolver] No city found at all — returning all nationwide stores');
-    return Store.find({ has_online_store: true, cities_served: '*' });
+    return Store.find({ cities_served: '*' });
   }
 
   const stores = await Store.find({
-    has_online_store: true,
     $or: [
       { cities_served: '*' },
       { cities_served: city.name_en },
     ],
   });
 
-  logger.info(`[LocationResolver] City: ${city.name_en} → ${stores.length} eligible stores`);
+  logger.info(`[LocationResolver] City: ${city.name_en} → ${stores.length} candidate stores`);
   return stores;
 }
 
