@@ -66,7 +66,7 @@ const STORES = [
     tier: 1,
     base_url: 'https://www.metro-online.pk',
     cities_served: ['karachi', 'lahore', 'islamabad', 'rawalpindi', 'faisalabad'],
-    has_online_store: false, // offline only — skipped by location resolver
+    has_online_store: true, // verified at runtime by storeHealthChecker, not hardcoded
     scraper_type: 'puppeteer',
   },
 ];
