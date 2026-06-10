@@ -7,6 +7,7 @@ const { general, search: searchLimit } = require('./src/middlewares/rateLimit');
 const { errorHandler, notFound } = require('./src/middlewares/errorHandler');
 const searchRoutes = require('./src/routes/search.routes');
 const productRoutes = require('./src/routes/product.routes');
+const storeRoutes = require('./src/routes/store.routes');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get('/health', (_req, res) =>
 // Search route has its own tighter rate limit
 app.use('/api/v1/search', searchLimit, searchRoutes);
 app.use('/api/v1/products', productRoutes);
+app.use('/api/v1', storeRoutes); // /stores and /pipeline/status
 
 app.use(notFound);
 app.use(errorHandler);
