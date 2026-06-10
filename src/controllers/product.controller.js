@@ -14,7 +14,13 @@ async function listProducts(req, res) {
       filter.category = req.query.category;
     }
     if (req.query.store) filter.store_id = req.query.store;
-    if (req.query.q) filter.$text = { $search: req.query.q };
+    if (req.query.q) {
+      // Case-insensitive partial match on name + brand (more reliable than a
+      // collection-wide $text index, and supports substrings like "cap" → "caps")
+      const escaped = req.query.q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const rx = new RegExp(escaped, 'i');
+      filter.$or = [{ name_en: rx }, { brand: rx }];
+    }
 
     const sortMap = {
       price_asc: { price_pkr: 1 },
