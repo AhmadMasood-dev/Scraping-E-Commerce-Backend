@@ -2,6 +2,7 @@ const { searchDaraz } = require('../scrapers/apis/daraz');
 const { scrape: scrapeTelemart } = require('../scrapers/puppeteer/telemart');
 const { scrape: scrapePriceOye } = require('../scrapers/puppeteer/priceoye');
 const { scrape: scrapePakWheels } = require('../scrapers/puppeteer/pakwheels');
+const { scrapeCheerio } = require('../scrapers/cheerio');
 const { withTimeout } = require('../scrapers/utils/withTimeout');
 const logger = require('../config/logger');
 
@@ -21,6 +22,10 @@ const SCRAPER_MAP = {
 
   PakWheels: (query, keywords, city) =>
     withTimeout(() => scrapePakWheels(query, keywords, city), SCRAPE_TIMEOUT_MS, 'PakWheels'),
+
+  // Category C — Cheerio (scrapeCheerio already wraps itself in withTimeout)
+  Shophive: (query) => scrapeCheerio('Shophive', query),
+  Pakfan: (query) => scrapeCheerio('Pakfan', query),
 };
 
 // Run all eligible stores in parallel — failures are isolated (Promise.allSettled)

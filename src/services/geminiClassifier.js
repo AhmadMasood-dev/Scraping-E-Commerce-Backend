@@ -34,7 +34,7 @@ async function classifyProducts(rawProducts) {
   if (!rawProducts || rawProducts.length === 0) return [];
 
   try {
-    const model = getClient().getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = getClient().getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = `${SYSTEM_PROMPT}\n\nInput products:\n${JSON.stringify(rawProducts, null, 2)}`;
 

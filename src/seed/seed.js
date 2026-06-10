@@ -61,6 +61,15 @@ const STORES = [
     scraper_type: 'cheerio',
   },
   {
+    name: 'Shophive',
+    category: 'C',
+    tier: 3,
+    base_url: 'https://www.shophive.com',
+    cities_served: ['*'],
+    has_online_store: true,
+    scraper_type: 'cheerio',
+  },
+  {
     name: 'Metro',
     category: 'A',
     tier: 1,
@@ -78,11 +87,19 @@ async function seedDatabase() {
     logger.info(`[Seed] Inserted ${CITIES.length} cities`);
   }
 
-  const storeCount = await Store.countDocuments();
-  if (storeCount === 0) {
-    await Store.insertMany(STORES);
-    logger.info(`[Seed] Inserted ${STORES.length} stores`);
+  // Upsert by name so newly-added stores appear without wiping the collection.
+  // Only sets curated fields on insert; preserves runtime health fields
+  // (has_online_store, last_checked_at) on existing docs.
+  let added = 0;
+  for (const s of STORES) {
+    const r = await Store.updateOne(
+      { name: s.name },
+      { $setOnInsert: s },
+      { upsert: true }
+    );
+    if (r.upsertedCount) added++;
   }
+  if (added) logger.info(`[Seed] Added ${added} new store(s)`);
 }
 
 module.exports = { seedDatabase };

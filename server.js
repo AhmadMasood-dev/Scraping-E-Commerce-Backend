@@ -4,12 +4,20 @@ const connectDB = require('./src/config/db');
 const logger = require('./src/config/logger');
 const { seedDatabase } = require('./src/seed/seed');
 const { closeBrowser } = require('./src/scrapers/puppeteer/browser');
+const { startScheduler, stopScheduler } = require('./src/pipeline/scheduler');
 
 const PORT = process.env.PORT || 5000;
 
 async function start() {
   await connectDB();
   await seedDatabase();
+
+  // Background pipeline only runs when explicitly enabled (off in dev/tests)
+  if (process.env.ENABLE_PIPELINE === 'true') {
+    startScheduler();
+  } else {
+    logger.info('[Server] Pipeline disabled (set ENABLE_PIPELINE=true to enable)');
+  }
 
   const server = app.listen(PORT, () => {
     logger.info(`PQC Backend running on http://localhost:${PORT}`);
@@ -18,6 +26,7 @@ async function start() {
   // Graceful shutdown — close browser + DB on SIGTERM / SIGINT
   async function shutdown(signal) {
     logger.info(`[Server] ${signal} received — shutting down gracefully`);
+    stopScheduler();
     server.close(async () => {
       await closeBrowser();
       const mongoose = require('mongoose');
