@@ -1,5 +1,19 @@
 const Store = require('../models/Store');
 const PipelineJob = require('../models/PipelineJob');
+const City = require('../models/City');
+
+// GET /api/v1/cities — list cities with coords (for geolocation → nearest city)
+async function listCities(_req, res) {
+  const cities = await City.find({}).sort({ name_en: 1 }).lean();
+  const data = cities.map((c) => ({
+    name_en: c.name_en,
+    name_ur: c.name_ur,
+    province: c.province,
+    lat: c.lat,
+    lng: c.lng,
+  }));
+  res.json({ success: true, data });
+}
 
 // GET /api/v1/stores — list all stores with category, tier, and health status
 async function listStores(_req, res) {
@@ -45,4 +59,4 @@ async function pipelineStatus(req, res) {
   res.json({ success: true, latest, data });
 }
 
-module.exports = { listStores, pipelineStatus };
+module.exports = { listStores, pipelineStatus, listCities };
