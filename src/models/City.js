@@ -5,6 +5,8 @@ const citySchema = new mongoose.Schema({
   name_ur: { type: String, default: '' },
   province: { type: String, default: '' },
   aliases: [{ type: String, lowercase: true }], // alternate spellings
+  lat: { type: Number, default: null }, // for geolocation → nearest-city
+  lng: { type: Number, default: null },
 }, { timestamps: true });
 
 citySchema.index({ name_en: 1 });

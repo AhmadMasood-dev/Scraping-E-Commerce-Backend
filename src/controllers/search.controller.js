@@ -4,6 +4,7 @@ const { filterOnlineStores } = require('../services/storeHealthChecker');
 const { runStores } = require('../services/storeTierRouter');
 const { classifyProducts } = require('../services/geminiClassifier');
 const { upsertProducts } = require('../services/scraper.service');
+const { buildComparison } = require('../services/comparison');
 const cache = require('../config/cache');
 const logger = require('../config/logger');
 
@@ -112,16 +113,21 @@ async function search(req, res) {
       }
     });
 
-    // ── 7. Group by category ──────────────────────────────────────────────────
+    // ── 7. Group by category (powers the A/B/C/D secondary tabs) ──────────────
     const grouped = { A: [], B: [], C: [], D: [] };
     for (const item of enriched) {
       const cat = item.category || 'A';
       if (grouped[cat]) grouped[cat].push(formatProduct(item));
     }
 
+    // ── 7b. Cross-store comparison (primary cluster + per-store results) ──────
+    const { primary, storeResults } = buildComparison(enriched);
+
     const totalMs = Date.now() - startMs;
     const payload = {
       results: grouped,
+      primary,
+      storeResults: storeResults.map(formatComparisonEntry),
       meta: {
         city,
         language: nlp.language,
@@ -158,6 +164,21 @@ function formatProduct(item) {
     confidence: item.confidence ?? 1.0,
     review_score: item.review_score ?? null, // our aggregated score (Phase 4)
     review_source: item.review_source ?? null,
+  };
+}
+
+// storeResults / comparison entries already have store_name + name fields;
+// just ensure a stable shape for the client.
+function formatComparisonEntry(e) {
+  return {
+    store_name: e.store_name || '',
+    name_en: e.name_en || '',
+    name_ur: e.name_ur || '',
+    price_pkr: e.price_pkr || 0,
+    image_url: e.image_url || '',
+    source_url: e.source_url || '',
+    rating: e.rating ?? null,
+    category: e.category || 'A',
   };
 }
 
