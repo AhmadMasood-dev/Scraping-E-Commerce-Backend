@@ -2,6 +2,7 @@ const { processQuery } = require('../nlp/processor');
 const { getEligibleStores } = require('../services/locationResolver');
 const { filterOnlineStores } = require('../services/storeHealthChecker');
 const { runStores } = require('../services/storeTierRouter');
+const { filterRelevant } = require('../scrapers/utils/relevance');
 const { classifyProducts } = require('../services/geminiClassifier');
 const { upsertProducts } = require('../services/scraper.service');
 const { buildComparison } = require('../services/comparison');
@@ -57,12 +58,16 @@ async function search(req, res) {
     }
 
     // ── 4. Scrape all live stores in parallel ─────────────────────────────────
-    const { items: rawItems, meta: scrapeMeta } = await runStores(
+    const { items: allItems, meta: scrapeMeta } = await runStores(
       liveStores,
       nlp.normalized,
       nlp.keywords,
       city
     );
+
+    // Stores' own search engines return loose matches (wrong variants, accessories).
+    // Filter their output down to items that actually match the query.
+    const rawItems = filterRelevant(allItems, nlp.normalized);
 
     // Stores actually attempted by a scraper (runStores skips stores with no scraper)
     const storesSearched = scrapeMeta.successStores.length + scrapeMeta.failedStores.length;
