@@ -8,7 +8,25 @@ const daraz = require('../../src/scrapers/apis/daraz');
 const telemart = require('../../src/scrapers/puppeteer/telemart');
 const priceoye = require('../../src/scrapers/puppeteer/priceoye');
 const pakwheels = require('../../src/scrapers/puppeteer/pakwheels');
-const { runStores } = require('../../src/services/storeTierRouter');
+const { runStores, storeMatchesQuery } = require('../../src/services/storeTierRouter');
+
+describe('storeMatchesQuery — niche-store gating', () => {
+  test('un-gated stores always run', () => {
+    expect(storeMatchesQuery('Daraz', 'anything', [])).toBe(true);
+    expect(storeMatchesQuery('Shophive', 'iphone', [])).toBe(true);
+  });
+  test('PakWheels runs only for car queries', () => {
+    expect(storeMatchesQuery('PakWheels', 'honda civic 2020', [])).toBe(true);
+    expect(storeMatchesQuery('PakWheels', 'iphone 15 pro max', [])).toBe(false);
+  });
+  test('Pakfan runs only for fan/appliance queries', () => {
+    expect(storeMatchesQuery('Pakfan', 'ceiling fan', [])).toBe(true);
+    expect(storeMatchesQuery('Pakfan', 'macbook air', [])).toBe(false);
+  });
+  test('matches on keywords too, not just the raw query', () => {
+    expect(storeMatchesQuery('PakWheels', 'used', ['corolla'])).toBe(true);
+  });
+});
 
 const makeStore = (name, scraper_type = 'api') => ({
   _id: { toString: () => name, equals: (o) => o === name },

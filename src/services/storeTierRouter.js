@@ -6,7 +6,25 @@ const { scrapeCheerio } = require('../scrapers/cheerio');
 const { withTimeout } = require('../scrapers/utils/withTimeout');
 const logger = require('../config/logger');
 
-const SCRAPE_TIMEOUT_MS = 15000;
+// Lowered from 15s: Daraz(API)/Cheerio respond in ~1-3s, Puppeteer in ~5-9s once the
+// singleton browser is warm. 10s caps the tail without cutting off healthy responders.
+const SCRAPE_TIMEOUT_MS = 10000;
+
+// Query-relevance gates: a niche store only runs when the query matches its focus, so
+// adding more niche stores does NOT slow unrelated searches (and avoids wasted Puppeteer
+// launches). Stores with NO gate here are general marketplaces and always run.
+const STORE_GATES = {
+  Pakfan: /\b(fan|ceiling|pedestal|exhaust|cooler|heater|geyser|iron|kettle|blender|juicer|appliance)\b/i,
+  PakWheels: /\b(car|honda|toyota|suzuki|civic|corolla|mehran|alto|cultus|vitz|yaris|hybrid|vehicle|jeep|4x4|bike|motorcycle)\b/i,
+};
+
+// True if a store should run for this query (no gate = always run).
+function storeMatchesQuery(name, query, keywords) {
+  const gate = STORE_GATES[name];
+  if (!gate) return true;
+  if (gate.test(query || '')) return true;
+  return (keywords || []).some((k) => gate.test(k));
+}
 
 // Maps store name → scraper function
 // Each scraper returns: [{ name, price, image_url, source_url, store_name, ... }]
@@ -35,6 +53,7 @@ async function runStores(stores, query, keywords, city) {
 
   const tasks = stores
     .filter((store) => SCRAPER_MAP[store.name]) // skip stores with no scraper yet
+    .filter((store) => storeMatchesQuery(store.name, query, keywords)) // skip niche stores irrelevant to this query
     .map((store) => ({
       store,
       promise: SCRAPER_MAP[store.name](query, keywords, city).catch((err) => {
@@ -77,4 +96,4 @@ async function runStores(stores, query, keywords, city) {
   return { items, meta: { successStores, failedStores, durationMs } };
 }
 
-module.exports = { runStores };
+module.exports = { runStores, storeMatchesQuery, STORE_GATES, SCRAPE_TIMEOUT_MS };
